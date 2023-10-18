@@ -17,20 +17,20 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Setup mdBook
-        uses: peaceiris/actions-mdbook@v1
-        with:
-          mdbook-version: "0.4.5"
+#      - name: Setup mdBook
+#        uses: peaceiris/actions-mdbook@v1
+#        with:
+#          mdbook-version: "0.4.5"
 
-      # This generates the book inside ./book/book
-      - run: mdbook build book
+#      # This generates the book inside ./book/book
+#      - run: mdbook build book
 
-      # Build the cargo doc and copy it to ./book/book/doc
-      - name: Build the doc
-        run: |
-          cargo doc --no-deps
-          cp -r target/doc book/book/doc
-          echo "<meta http-equiv=refresh content=0;url=pravega_client/index.html>" > book/book/doc/index.html
+#      # Build the cargo doc and copy it to ./book/book/doc
+#      - name: Build the doc
+#        run: |
+#          cargo doc --no-deps
+#          cp -r target/doc book/book/doc
+#          echo "<meta http-equiv=refresh content=0;url=pravega_client/index.html>" > book/book/doc/index.html
 
       - name: Generate Pravega Python API documentation.
         run: |
