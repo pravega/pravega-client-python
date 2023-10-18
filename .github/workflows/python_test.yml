@@ -1,3 +1,4 @@
+name: pythontest
 
 on:
   # Trigger the workflow on push or pull request,
@@ -6,8 +7,6 @@ on:
     branches:
       - master
   pull_request:
-
-name: pythontest
 
 jobs:
   test_tox:
