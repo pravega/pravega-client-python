@@ -1,6 +1,3 @@
-![CIbuild](https://github.com/pravega/pravega-client-rust/workflows/CIbuild/badge.svg)
-[![codecov](https://codecov.io/gh/pravega/pravega-client-rust/branch/master/graph/badge.svg?token=XEjqMkINCV)](https://codecov.io/gh/pravega/pravega-client-rust)
-
 # Pravega Python client.
 
 This project provides a way to interact with [Pravega](http://pravega.io) using Python client.
@@ -9,10 +6,7 @@ Pravega is an open source distributed storage service implementing Streams. It o
 the foundation of reliable storage systems: a high-performance, durable, elastic, and unlimited append-only byte stream 
 with strict ordering and consistency.
 
-This project supports interaction with Pravega for Python versions 3.8+. For a quick tutorial on the Python bindings 
-visit the [book](https://pravega.github.io/pravega-client-rust/Python/PythonBindings.html).
-
-Also check out the Pravega Python client [API documents](https://pravega.github.io/pravega-client-rust/python/pravega_client.html).
+This project supports interaction with Pravega for Python versions 3.8+.
 ## Install
 
 The client library can be installed using pip.

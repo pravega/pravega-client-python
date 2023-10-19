@@ -3,7 +3,7 @@
 The below section provides a Pravega Python API tutorial for the Rust based Pravega Native client. This tutorial is a 
 companion to [Pravega Python API](../python/pravega_client.html)
 
-Also, check out the [repo](https://github.com/pravega/pravega-client-rust/tree/master/python).
+Also, check out the [repo](https://github.com/pravega/pravega-client-python/tree/master/python).
 
 ## StreamManager
 
