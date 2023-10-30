@@ -1,0 +1,34 @@
+name: documentation
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  generate_documentation:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.10'
+
+      - name: Generate Pravega Python API documentation.
+        run: |
+          pip install 'maturin>=0.14,<0.15' virtualenv pdoc3
+          virtualenv venv
+          source venv/bin/activate
+          maturin develop -m Cargo.toml
+          pdoc --html pravega_client
+          mkdir -p book/book/python
+          cp html/pravega_client/pravega_client.html book/book/python
+
+      - name: Deploy
+        uses: actions/checkout@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./book/book/
