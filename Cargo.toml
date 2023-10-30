@@ -1,6 +1,6 @@
 [package]
 name = "pravega"
-version = "0.3.5"
+version = "0.3.6"
 edition = "2018"
 categories = ["network-programming"]
 keywords = ["streaming", "client", "pravega"]
@@ -26,13 +26,13 @@ python_binding = ["pyo3", "pyo3-asyncio"]
 tracing = "0.1.40"
 tracing-futures = "0.2.5"
 tracing-subscriber = "0.3.17"
-pravega-client = {version = "0.3.2"}
-pravega-client-shared = {version = "0.3.5"}
-pravega-controller-client = {version = "0.3.5"}
-pravega-wire-protocol = {version = "0.3.5"}
-pravega-client-retry = {version = "0.3.5"}
-pravega-connection-pool = {version = "0.3.5"}
-pravega-client-config = {version = "0.3.5"}
+pravega-client = {version = "0.3"}
+pravega-client-shared = {version = "0.3"}
+pravega-controller-client = {version = "0.3"}
+pravega-wire-protocol = {version = "0.3"}
+pravega-client-retry = {version = "0.3"}
+pravega-connection-pool = {version = "0.3"}
+pravega-client-config = {version = "0.3"}
 tokio = "1.33.0"
 lazy_static = "1.4.0"
 uuid = {version = "1.5.0", features = ["v4"]}
