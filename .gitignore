@@ -26,4 +26,5 @@ __pycache__/
 book/book
 html/
 python_binding/.tox/
-
+.coverage
+coverage.xml
