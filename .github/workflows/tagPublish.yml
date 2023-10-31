@@ -16,7 +16,7 @@ jobs:
       - name: Set release version
         run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
       - name: Create Github release page
-        # Create the release page first or the nodejs artifacts upload will fail
+        # Create the release page first
         run: gh release create ${{ env.RELEASE_VERSION }} --draft --notes "Auto created by tagPublish workflow."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -32,7 +32,6 @@ jobs:
         { os: "macOS-latest",   python-architecture: "x64", rust-target: "x86_64-apple-darwin" },
         { os: "windows-latest", python-architecture: "x64", rust-target: "x86_64-pc-windows-msvc" },
         { os: "ubuntu-20.04",  python-architecture: "x64", rust-target: "x86_64-unknown-linux-gnu" },
-        # { os: "windows-latest", python-architecture: "x86", rust-target: "i686-pc-windows-msvc" },
         ]
       fail-fast: false
     steps:
