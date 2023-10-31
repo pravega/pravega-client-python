@@ -13,18 +13,17 @@ ROOT = Path(__file__).parent.parent.parent
 # Note the docker image konstin2/maturin:master does not work.
 
 os.chdir("./")
+command = [
+    "maturin",
+    "build",
+    "--release",
+    "--interpreter",
+    sys.executable,
+]
 if len(sys.argv) > 1 :
-    command = sys.argv[1].split(",")
-    command.append(sys.executable)
+    command.insert(3, sys.argv[1])
 else:
-    command = [
-        "maturin",
-        "build",
-        "--release",
-        "--compatibility=manylinux_2_35",
-        "--interpreter",
-        sys.executable,
-    ]
+    command.insert(3, "--compatibility=manylinux_2_35")
 subprocess.run(command, check=True)
 wheels = [x for x in (ROOT / "target" / "wheels").iterdir()]
 if len(wheels) != 1:

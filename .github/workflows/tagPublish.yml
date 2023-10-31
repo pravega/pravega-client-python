@@ -58,11 +58,11 @@ jobs:
       - name: build wheel
         if: ${{ matrix.platform.os != 'ubuntu-20.04'}}
         id: build_wheel
-        run: python -u .github/workflows/build_wheel.py
+        run: python -u .github/workflows/build_wheel.py "--compatibility=manylinux_2_35"
       - name: build wheel 1
         if: ${{ matrix.platform.os == 'ubuntu-20.04'}}
         id: build_wheel1
-        run: python -u .github/workflows/build_wheel.py "maturin","build","--release","--compatibility=manylinux_2_31","--interpreter"
+        run: python -u .github/workflows/build_wheel.py "--compatibility=manylinux_2_31"
       - name: build source
         id: build_source
         run: python -u .github/workflows/build_source.py
