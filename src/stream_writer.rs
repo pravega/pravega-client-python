@@ -84,8 +84,11 @@ impl StreamWriter {
     ///
     #[pyo3(text_signature = "($self, event, routing_key=None)")]
     #[args(event, routing_key = "None", "*")]
-    pub fn write_event(&mut self, event: &str, routing_key: Option<String>) -> PyResult<()> {
-        self.write_event_bytes(event.as_bytes(), routing_key)
+    pub fn write_event<'p>(&mut self, event: &str, routing_key: Option<String>, py: Python<'p>) -> PyResult<&'p PyAny> {
+        pyo3_asyncio::tokio::future_into_py(py, async move {
+            self.write_event_bytes(event.as_bytes(), routing_key);
+            Python::with_gil(|py| Ok(py.None()))
+        })
     }
 
     ///
