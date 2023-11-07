@@ -20,10 +20,7 @@ command = [
     "--interpreter",
     sys.executable,
 ]
-if len(sys.argv) > 1 :
-    command.insert(3, sys.argv[1])
-else:
-    command.insert(3, "--compatibility=manylinux_2_35")
+command.insert(3, sys.argv[1])
 subprocess.run(command, check=True)
 wheels = [x for x in (ROOT / "target" / "wheels").iterdir()]
 if len(wheels) != 1:
