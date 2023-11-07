@@ -20,10 +20,14 @@ cfg_if! {
         use tracing::trace;
         use tracing::info;
         use std::time::Duration;
+        use std::sync::Arc;
         use tokio::runtime::Handle;
         use tokio::time::timeout;
+        use tokio::sync::Mutex;
+        use tokio::sync::oneshot;
         use tokio::sync::oneshot::error::RecvError;
         use pravega_client::util::oneshot_holder::OneShotHolder;
+        use pravega_client::error::Error;
     }
 }
 
@@ -84,10 +88,40 @@ impl StreamWriter {
     ///
     #[pyo3(text_signature = "($self, event, routing_key=None)")]
     #[args(event, routing_key = "None", "*")]
-    pub fn write_event<'p>(&mut self, event: &str, routing_key: Option<String>, py: Python<'p>) -> PyResult<&'p PyAny> {
+    pub fn write_event(&mut self, event: &str, routing_key: Option<String>) -> PyResult<()> {
+        self.write_event_bytes(event.as_bytes(), routing_key)
+    }
+
+    #[pyo3(text_signature = "($self, event, routing_key=None)")]
+    #[args(event, routing_key = "None", "*")]
+    pub fn write_event_async<'p>(&mut self, event: &str, routing_key: Option<String>, py: Python<'p>) -> PyResult<&'p PyAny> {
+        let writer: EventWriter = self.writer.into();
+        let arc_mutex_writer = Arc::new(Mutex::new(writer));
+        let writer = arc_mutex_writer.clone();
+        // to_vec creates an owned copy of the python byte array object.
+        let event = event.as_bytes().to_vec();
+
         pyo3_asyncio::tokio::future_into_py(py, async move {
-            self.write_event_bytes(event.as_bytes(), routing_key);
-            Python::with_gil(|py| Ok(py.None()))
+            let write_result: oneshot::Receiver<Result<(), Error>>;
+            match routing_key {
+                Option::None => {
+                    trace!("Writing a single event with no routing key");
+                    write_result = writer.lock().await.write_event(event.to_vec()).await;
+                }
+                Option::Some(key) => {
+                    trace!("Writing a single event for a given routing key {:?}", key);
+                    write_result = writer.lock().await.write_event_by_routing_key(key, event.to_vec()).await;
+                }
+            }
+            match write_result.await {
+                Ok(_) => {
+                    Python::with_gil(|py| Ok(py.None()))
+                },
+                Err(e) => Err(exceptions::PyOSError::new_err(format!(
+                    "Error observed while writing an event {:?}",
+                    e
+                ))),
+            }
         })
     }
 
