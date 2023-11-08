@@ -20,6 +20,8 @@ cfg_if! {
         use pyo3::prelude::*;
         use pyo3::PyResult;
         use pyo3::{exceptions, PyObjectProtocol};
+        use std::sync::Arc;
+        use tokio::sync::Mutex;
         use tracing::info;
         use pravega_client::event::reader_group::ReaderGroupConfigBuilder;
         use crate::stream_reader_group::StreamReaderGroupConfig;
@@ -440,7 +442,7 @@ impl StreamManager {
             stream: Stream::from(stream_name.to_string()),
         };
         let stream_writer = StreamWriter::new(
-            self.cf.create_event_writer(scoped_stream.clone()),
+            Arc::new(Mutex::new(self.cf.create_event_writer(scoped_stream.clone()))),
             self.cf.runtime_handle(),
             scoped_stream,
             max_inflight_events,
