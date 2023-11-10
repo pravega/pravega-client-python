@@ -59,6 +59,47 @@ class PravegaReaderTest(aiounittest.AsyncTestCase):
             self.assertEqual(b'test event', event.data(), "Invalid event data")
         self.assertEqual(count, 2, "Two events are expected")
 
+    async def test_asyncEventwriteAndRead(self):
+        suffix = str(random.randint(0, 100))
+        scope = "testAsyncEventWriteScope"
+        stream = "testAsyncEventWriteStream" + suffix
+        print("Creating a Stream Manager, ensure Pravega is running")
+        stream_manager = pravega_client.StreamManager("tcp://127.0.0.1:9090")
+
+        print("Creating a scope")
+        scope_result = stream_manager.create_scope(scope)
+        print(scope_result)
+        print("Creating a stream ", stream)
+        stream_result = stream_manager.create_stream(scope, stream, 1)
+        print(stream_result)
+
+        print("Creating a writer for Stream")
+        w1 = stream_manager.create_writer(scope, stream)
+
+        print("Write events")
+        await w1.write_event_async("test async write event")
+        await w1.write_event_async("test async write event")
+        await w1.write_event_async("test async write event with routing key", "key1")
+        await w1.write_event_async("test async write event with routing key", "key2")
+        w1.flush()
+        # Create a reader Group Configuration to read from HEAD of stream.
+        rg_config = pravega_client.StreamReaderGroupConfig(False, scope, stream)
+        reader_group=stream_manager.create_reader_group_with_config("rg" + suffix, scope, rg_config)
+        r1 = reader_group.create_reader("reader-1")
+        segment_slice = await r1.get_segment_slice_async()
+        print(segment_slice)
+        # consume the segment slice for events.
+        count1=0
+        count2=0
+        for event in segment_slice:
+            print(event.data())
+            if event.data() == b'test async write event':
+                count1+=1
+            elif event.data() == b'test async write event with routing key':
+                count2+=1
+        self.assertEqual(count1, 2, "Two events are expected")
+        self.assertEqual(count2, 2, "Two events written with routing key are expected")
+
     async def test_writeEventWithInflightAndRead(self):
         suffix = str(random.randint(0, 100))
         scope = "testRead"
