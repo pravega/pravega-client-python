@@ -20,10 +20,14 @@ cfg_if! {
         use tracing::trace;
         use tracing::info;
         use std::time::Duration;
+        use std::sync::Arc;
         use tokio::runtime::Handle;
         use tokio::time::timeout;
+        use tokio::sync::Mutex;
+        use tokio::sync::oneshot;
         use tokio::sync::oneshot::error::RecvError;
         use pravega_client::util::oneshot_holder::OneShotHolder;
+        use pravega_client::error::Error;
     }
 }
 
@@ -34,7 +38,7 @@ cfg_if! {
 #[cfg(feature = "python_binding")]
 #[pyclass]
 pub(crate) struct StreamWriter {
-    writer: EventWriter,
+    writer: Arc<Mutex<EventWriter>>,
     runtime_handle: Handle,
     stream: ScopedStream,
     inflight: OneShotHolder<WriterError>,
@@ -45,7 +49,7 @@ const TIMEOUT_IN_SECONDS: u64 = 120;
 
 impl StreamWriter {
     pub fn new(
-        writer: EventWriter,
+        writer: Arc<Mutex<EventWriter>>,
         runtime_handle: Handle,
         stream: ScopedStream,
         max_inflight_count: usize,
@@ -89,6 +93,54 @@ impl StreamWriter {
     }
 
     ///
+    /// Write an event into the Pravega Stream asynchronously. The events that are written will appear
+    /// in the Stream exactly once. The event of type String is converted into bytes with `UTF-8` encoding.
+    /// The user can optionally specify the routing key.
+    ///
+    /// ```
+    /// import pravega_client;
+    /// manager=pravega_client.StreamManager("tcp://127.0.0.1:9090")
+    /// // lets assume the Pravega scope and stream are already created.
+    /// writer=manager.create_writer("scope", "stream")
+    ///
+    /// // write into Pravega stream without specifying the routing key.
+    /// await writer.write_event_async("e1")
+    /// // write into Pravega stream by specifying the routing key.
+    /// await writer.write_event_async("e2", "key1")
+    /// ```
+    ///
+    #[pyo3(text_signature = "($self, event, routing_key=None)")]
+    #[args(event, routing_key = "None", "*")]
+    pub fn write_event_async<'p>(&mut self, event: &str, routing_key: Option<String>, py: Python<'p>) -> PyResult<&'p PyAny> {
+        let writer = self.writer.clone();
+        // to_vec creates an owned copy of the python byte array object.
+        let event = event.as_bytes().to_vec();
+
+        pyo3_asyncio::tokio::future_into_py(py, async move {
+            let write_result: oneshot::Receiver<Result<(), Error>>;
+            match routing_key {
+                Option::None => {
+                    trace!("Writing a single event with no routing key");
+                    write_result = writer.lock().await.write_event(event).await;
+                }
+                Option::Some(key) => {
+                    trace!("Writing a single event for a given routing key {:?}", key);
+                    write_result = writer.lock().await.write_event_by_routing_key(key, event).await;
+                }
+            }
+            match write_result.await {
+                Ok(_) => {
+                    Python::with_gil(|py| Ok(py.None()))
+                },
+                Err(e) => Err(exceptions::PyOSError::new_err(format!(
+                    "Error observed while writing an event {:?}",
+                    e
+                ))),
+            }
+        })
+    }
+
+    ///
     /// Write a byte array into the Pravega Stream. This is similar to `write_event(...)` api except
     /// that the the event to be written is a byte array. The user can optionally specify the
     ///  routing key.
@@ -111,18 +163,23 @@ impl StreamWriter {
     #[pyo3(text_signature = "($self, event, routing_key=None)")]
     #[args(event, routing_key = "None", "*")]
     pub fn write_event_bytes(&mut self, event: &[u8], routing_key: Option<String>) -> PyResult<()> {
+        let writer = self.writer.clone();
         // to_vec creates an owned copy of the python byte array object.
         let write_future: tokio::sync::oneshot::Receiver<Result<(), WriterError>> =
             match routing_key {
                 Option::None => {
                     trace!("Writing a single event with no routing key");
                     self.runtime_handle
-                        .block_on(self.writer.write_event(event.to_vec()))
+                        .block_on(async {
+                            writer.lock().await.write_event(event.to_vec()).await
+                        })
                 }
                 Option::Some(key) => {
                     trace!("Writing a single event for a given routing key {:?}", key);
                     self.runtime_handle
-                        .block_on(self.writer.write_event_by_routing_key(key, event.to_vec()))
+                        .block_on(async {
+                            writer.lock().await.write_event_by_routing_key(key, event.to_vec()).await
+                        })
                 }
             };
         let _guard = self.runtime_handle.enter();
