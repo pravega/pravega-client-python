@@ -47,6 +47,10 @@ jobs:
         run: pip install 'maturin>=0.14,<0.15' virtualenv tox==3.28.0 tox-pyo3
       - name: Test with tox
         run: tox -c tox.ini
+      - uses: codecov/codecov-action@v3
+        with:
+          files: coverage.xml
+          name: ${{github.job}}-reports
       - name: Upload Pravega standalone logs
         uses: actions/upload-artifact@v2
         if: always()
