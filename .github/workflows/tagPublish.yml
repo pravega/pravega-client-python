@@ -92,6 +92,8 @@ jobs:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ steps.mint-token.outputs.api-token }}
         run: |
+          echo ${{ env.TWINE_PASSWORD }}
+          echo ${{ steps.mint-token.outputs.api-token }}
           pip install -U twine
           python -m twine upload --skip-existing target/wheels/*
       - name: Upload to Github releases
