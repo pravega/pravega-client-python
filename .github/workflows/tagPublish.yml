@@ -90,7 +90,7 @@ jobs:
           # the username and the repository needs to be changed before release.
           TWINE_REPOSITORY: testpypi
           TWINE_USERNAME: __token__
-          TWINE_PASSWORD: "${api_token}"
+          TWINE_PASSWORD: ${{ steps.mint-token.outputs.api-token }}
         run: |
           pip install -U twine
           python -m twine upload --skip-existing target/wheels/*
