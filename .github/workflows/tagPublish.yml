@@ -85,17 +85,12 @@ jobs:
             
             # see the next step in the workflow for an example of using this step output
             echo "api-token=${api_token}" >> "${GITHUB_OUTPUT}"
-      - name: Publish to pypi
-        env:
-          # the username and the repository needs to be changed before release.
-          TWINE_REPOSITORY: testpypi
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ steps.mint-token.outputs.api-token }}
-        run: |
-          echo ${{ env.TWINE_PASSWORD }}
-          echo ${{ steps.mint-token.outputs.api-token }}
-          pip install -U twine
-          python -m twine upload --skip-existing target/wheels/*
+      - name: publish
+        # gh-action-pypi-publish uses TWINE_PASSWORD automatically
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          password: ${{ steps.mint-token.outputs.api-token }}
       - name: Upload to Github releases
         working-directory: ./target
         # Use bash, even on Windows to make find available
