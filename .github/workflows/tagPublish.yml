@@ -75,9 +75,10 @@ jobs:
             resp=$(curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
                 "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=testpypi")
             oidc_token=$(jq '.value' <<< "${resp}")
-            
+            echo ${oidc_token}
             # exchange the OIDC token for an API token
             resp=$(curl -X POST https://pypi.org/_/oidc/github/mint-token -d "{\"token\": \"${oidc_token}\"}")
+            echo ${resp}
             api_token=$(jq '.token' <<< "${resp}")
             
             # mask the newly minted API token, so that we don't accidentally leak it
