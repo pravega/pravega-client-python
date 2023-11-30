@@ -74,6 +74,7 @@ jobs:
             # retrieve the ambient OIDC token
             resp=$(curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
                 "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=testpypi")
+            echo ${resp}
             oidc_token=$(jq '.value' <<< "${resp}")
             echo ${oidc_token}
             # exchange the OIDC token for an API token
@@ -83,7 +84,7 @@ jobs:
             
             # mask the newly minted API token, so that we don't accidentally leak it
             echo ${api_token}
-            echo "::add-mask::${api_token}"
+            #echo "::add-mask::${api_token}"
             
             # see the next step in the workflow for an example of using this step output
             echo "api-token=${api_token}" >> "${GITHUB_OUTPUT}"
