@@ -76,10 +76,9 @@ jobs:
             oidc_token=$(jq '.value' <<< "${resp}")
             # exchange the OIDC token for an API token
             resp=$(curl -X POST https://pypi.org/_/oidc/github/mint-token -d "{\"token\": ${oidc_token}}")
-            api_token=$(jq '.token' <<< "${resp}")
+            api_token=$(jq -r '.token' <<< "${resp}")
             
             # mask the newly minted API token, so that we don't accidentally leak it
-            api_token=echo ${api_token} | tr -d '"'
             #echo "::add-mask::${api_token}
             echo ${api_token}
             
