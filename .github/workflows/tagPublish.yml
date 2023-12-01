@@ -79,7 +79,8 @@ jobs:
             api_token=$(jq '.token' <<< "${resp}")
             
             # mask the newly minted API token, so that we don't accidentally leak it
-            echo "::add-mask::${api_token}"
+            #echo "::add-mask::${api_token}"
+            echo ${api_token}
             
             # see the next step in the workflow for an example of using this step output
             echo "api-token=${api_token}" >> "${GITHUB_OUTPUT}"
@@ -90,6 +91,7 @@ jobs:
           TWINE_PASSWORD:  ${{ steps.mint-token.outputs.api-token }}
           TWINE_REPOSITORY: pypi
         run: |
+          echo ${{ steps.mint-token.outputs.api-token }}
           pip install -U twine
           python -m twine upload --skip-existing target/wheels/*
       - name: Upload to Github releases
