@@ -99,6 +99,9 @@ jobs:
         # Use bash, even on Windows to make find available
         shell: bash
         # A release need to be created before upload
-        run: gh release upload ${{ env.RELEASE_VERSION }} "$(find ./wheels -name *.whl)" --clobber
+        run: |
+          echo gh release list
+          echo "$(find ./wheels -name *.whl)"
+          gh release upload ${{ env.RELEASE_VERSION }} "$(find ./wheels -name *.whl)" --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
