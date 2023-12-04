@@ -90,7 +90,7 @@ jobs:
         env:
           # the username and the repository needs to be changed before release.
           TWINE_USERNAME: __token__
-          TWINE_PASSWORD:  ${{ steps.mint-token.outputs.api-token }}
+          TWINE_PASSWORD: ${{ steps.mint-token.outputs.api-token }}
           TWINE_REPOSITORY: pypi
         run: |
           pip install -U twine
