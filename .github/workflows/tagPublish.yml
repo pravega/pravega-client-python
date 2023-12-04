@@ -70,6 +70,7 @@ jobs:
         run: python -u .github/workflows/build_source.py
       - name: mint API token
         id: mint-token
+        shell: bash
         run: |
             # retrieve the ambient OIDC token
             resp=$(curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
