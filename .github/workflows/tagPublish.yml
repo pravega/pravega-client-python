@@ -72,7 +72,8 @@ jobs:
         id: mint-token
         run: |
             # retrieve the ambient OIDC token
-            resp=$(curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=pypi")
+            resp=$(curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+                "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=pypi")
             oidc_token=$(jq '.value' <<< "${resp}")
             # exchange the OIDC token for an API token
             resp=$(curl -X POST https://pypi.org/_/oidc/github/mint-token -d "{\"token\": ${oidc_token}}")
