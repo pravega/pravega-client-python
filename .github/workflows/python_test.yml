@@ -58,3 +58,11 @@ jobs:
         uses: codecov/codecov-action@v3
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      - name: Build and test
+        run: |
+          cargo build --verbose --all
+          cargo test --verbose
+      - name: Run tarpaulin
+        run: |
+          cargo install cargo-tarpaulin        
+          cargo tarpaulin --all-features
