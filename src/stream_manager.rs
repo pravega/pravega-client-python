@@ -661,4 +661,4 @@ impl PyObjectProtocol for StreamManager {
     fn __repr__(&self) -> PyResult<String> {
         Ok(format!("StreamManager({})", self.to_str()))
     }
-}
+ }
