@@ -64,9 +64,9 @@ jobs:
           export CARGO_TARGET_DIR=$CARGO_LLVM_COV_TARGET_DIR
           export CARGO_INCREMENTAL=1
           cargo llvm-cov clean --workspace
-          cargo tarpaulin
-          maturin develop
-          cargo llvm-cov report --lcov --output-path coverage.lcov
+          maturin develop --features "extension-module"
+          cargo install cargo-tarpaulin        
+          cargo tarpaulin --tests --out coverage.lcov
       - uses: codecov/codecov-action@v3
         with:
           files: coverage.lcov
