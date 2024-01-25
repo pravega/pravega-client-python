@@ -55,7 +55,7 @@ jobs:
         run: |
           python -m venv venv
           source venv/bin/activate
-          pip install 'maturin>=0.14,<0.15' virtualenv tox==3.28.0 tox-pyo3
+          pip install 'maturin>=0.14,<0.15' venv tox==3.28.0 tox-pyo3
       - name: Test with tox
         run: tox -c tox.ini
       - name: Run coverage
