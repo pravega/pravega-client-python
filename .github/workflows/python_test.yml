@@ -66,7 +66,7 @@ jobs:
           cargo llvm-cov clean --workspace
           maturin develop --features "extension-module"
           cargo install cargo-tarpaulin        
-          cargo tarpaulin --tests --out coverage.lcov
+          cargo tarpaulin --tests --out Lcov
       - uses: codecov/codecov-action@v3
         with:
           files: coverage.lcov
