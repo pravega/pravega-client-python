@@ -65,10 +65,10 @@ jobs:
           export CARGO_INCREMENTAL=1
           cargo llvm-cov clean --workspace
           maturin develop
-          cargo llvm-cov --no-run --lcov --output-path coverage.lcov
+          cargo llvm-cov report --lcov --output-path coverage.lcov
       - uses: codecov/codecov-action@v3
         with:
-          files: coverage.lcov,coverage.xml
+          files: coverage.lcov
           name: ${{github.job}}-reports
       - name: Upload Pravega standalone logs
         uses: actions/upload-artifact@v2
