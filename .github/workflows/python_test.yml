@@ -55,21 +55,21 @@ jobs:
         run: |
           python -m venv venv
           source venv/bin/activate
-          pip install 'maturin>=0.14,<0.15' virtualenv tox==3.28.0 tox-pyo3
-          tox -c tox.ini
       - name: Run coverage
         run: |
           source venv/bin/activate
+          pip install 'maturin>=0.14,<0.15' virtualenv tox==3.28.0 tox-pyo3
           source <(cargo llvm-cov show-env --export-prefix)
           export CARGO_TARGET_DIR=$CARGO_LLVM_COV_TARGET_DIR
           export CARGO_INCREMENTAL=1
           cargo llvm-cov clean --workspace
-          maturin develop --features "extension-module"
-          cargo install cargo-tarpaulin        
-          cargo tarpaulin --tests --out Lcov
+          cargo test
+          maturin develop
+          pytest tests --cov=foobar --cov-report xml
+          cargo llvm-cov --no-run --lcov --output-path coverage.lcov
       - uses: codecov/codecov-action@v3
         with:
-          files: coverage.lcov
+          files: coverage.lcov,coverage.xml
           name: ${{github.job}}-reports
       - name: Upload Pravega standalone logs
         uses: actions/upload-artifact@v2

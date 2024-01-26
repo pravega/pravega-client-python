@@ -13,13 +13,13 @@ authors = ["Pravega Community"]
 
 [lib]
 name = "pravega_client"
-crate-type = ["cdylib","rlib"]
+crate-type = ["cdylib"]
 
 [features]
 default = ["python_binding"]
 javascript_binding = ["wasm-bindgen"]
 python_binding = ["pyo3", "pyo3-asyncio"]
-extension-module = ["pyo3/extension-module"]
+
 
 #Run tests for bindings using command cargo test --no-default-features
 
@@ -39,9 +39,8 @@ lazy_static = "1.4"
 uuid = {version = "0.8", features = ["v4"]}
 futures = "0.3"
 derive-new = "0.5"
-cargo-tarpaulin = "0.27"
 #Python bindings
-pyo3 = { version = "0.14.5" , features = ["extension-module", "multiple-pymethods"], optional = true }
+pyo3 = { version = "0.14.5" ,optional = true }
 pyo3-asyncio = { version = "0.14", features = ["tokio-runtime"], optional = true }
 #WASM bindings
 wasm-bindgen = { version = "0.2.63", optional = true }
