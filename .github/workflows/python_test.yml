@@ -65,7 +65,8 @@ jobs:
           cargo llvm-cov clean --workspace
           cargo test
           maturin develop
-          tox -c tox.ini
+          pip install -r requirements.txt
+          pytest tests --cov=pravega_client --cov-report xml
           cargo llvm-cov --no-run --lcov --output-path coverage.lcov
       - uses: codecov/codecov-action@v3
         with:
