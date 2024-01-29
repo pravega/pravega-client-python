@@ -41,7 +41,8 @@ class PravegaTest(unittest.TestCase):
 
         # create a stream with stream scaling is enabled with data rate as 10kbps, scaling factor as 2 and initial segments as 1
         policy = StreamScalingPolicy.auto_scaling_policy_by_data_rate(10, 2, 1)
-        stream_result=stream_manager.create_stream_with_policy(scope_name=scope, stream_name="testStream1", scaling_policy=policy)
+        retention = StreamRetentionPolicy.none()
+        stream_result=stream_manager.create_stream_with_policy(scope_name=scope, stream_name="testStream1", scaling_policy=policy, retention_policy=retention)
         self.assertTrue(stream_result, "Stream creation status")
         # add tags
         stream_update=stream_manager.update_stream_with_policy(scope_name=scope, stream_name="testStream1", scaling_policy=policy, tags=['t1', 't2'])
@@ -147,23 +148,50 @@ class PravegaTest(unittest.TestCase):
         # write and read data.
         print("Creating a writer for Stream")
         bs=stream_manager.create_byte_stream(scope,"testStream")
-        self.assertEqual(5, bs.write(b"bytes"))
+        self.assertEqual(15, bs.write(b"bytesfortesting"))
+        self.assertEqual(15, bs.write(b"bytesfortesting"))
+        self.assertEqual(15, bs.write(b"bytesfortesting"))
         bs.flush()
-        self.assertEqual(5, bs.current_tail_offset())
-        buf=bytearray(5)
-        self.assertEqual(5, bs.readinto(buf))
+        self.assertEqual(45, bs.current_tail_offset())
+        buf=bytearray(10)
+        self.assertEqual(10, bs.readinto(buf))
 
         # fetch the current read offset.
         current_offset=bs.tell()
-        self.assertEqual(5, current_offset)
+        self.assertEqual(10, current_offset)
+        self.assertFalse(bs.seekable())
 
         # seek to a given offset and read
-        bs.seek(3, 0)
+        bs.seek(10, 0)
         buf=bytearray(2)
         self.assertEqual(2, bs.readinto(buf))
+        current_offset=bs.tell()
+        self.assertEqual(12, current_offset)
+
+        # seek from {current position (i.e. 12 here) + 5 } which is 17 and read
+        bs.seek(5, 1)
+        buf=bytearray(8)
+        # reading 8 bytes here
+        self.assertEqual(8, bs.readinto(buf))
+        self.assertEqual(25, bs.tell())
+
+        # seek from {size of this object (i.e. 45 here) - 10 } which is 35 and read
+        bs.seek(-10, 2)
+        buf=bytearray(8)
+        # reading 8 bytes here
+        self.assertEqual(8, bs.readinto(buf))
+        self.assertEqual(43, bs.tell())
 
         bs.truncate(2)
         self.assertEqual(2, bs.current_head_offset())
+        try:
+            bs.seek(3, 6)
+            self.fail("whence should be one of 0: seek from start, 1: seek from current, or 2: seek from end")
+        except Exception as e:
+            print("Exception ", e)
+
+
+
 
     def test_writeTxn(self):
         scope = ''.join(secrets.choice(string.ascii_lowercase + string.digits)

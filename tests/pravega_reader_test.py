@@ -58,6 +58,8 @@ class PravegaReaderTest(aiounittest.AsyncTestCase):
             print(event.data())
             self.assertEqual(b'test event', event.data(), "Invalid event data")
         self.assertEqual(count, 2, "Two events are expected")
+        reader_group.reader_offline("reader-1")
+        stream_manager.delete_reader_group("rg" + suffix, scope)
 
     async def test_asyncEventwriteAndRead(self):
         suffix = str(random.randint(0, 100))

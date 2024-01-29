@@ -575,7 +575,7 @@ impl StreamManager {
     /// import pravega_client;
     /// manager=pravega_client.StreamManager("tcp://127.0.0.1:9090")
     /// // Delete a ReaderGroup against an already created Pravega scope..
-    /// manager.delete_reader_group_with_config("rg1", "scope", rg_config)
+    /// manager.delete_reader_group("rg1", "scope", rg_config)
     ///
     /// ```
     ///
