@@ -159,7 +159,7 @@ class PravegaTest(unittest.TestCase):
         # fetch the current read offset.
         current_offset=bs.tell()
         self.assertEqual(10, current_offset)
-        self.assertFalse(bs.seekable())
+        self.assertTrue(bs.seekable())
 
         # seek to a given offset and read
         bs.seek(10, 0)

@@ -46,7 +46,12 @@ class PravegaReaderTest(aiounittest.AsyncTestCase):
         w1.write_event("test event")
         w1.flush()
         # Create a reader Group Configuration to read from HEAD of stream.
-        rg_config = pravega_client.StreamReaderGroupConfig(False, scope, stream)
+        try:
+           rg_config = pravega_client.StreamReaderGroupConfig(False, scope, "")
+           self.fail("Empty stream name should throw exception")
+        except Exception as e:
+           rg_config = pravega_client.StreamReaderGroupConfig(False, scope, stream)
+
         reader_group=stream_manager.create_reader_group_with_config("rg" + suffix, scope, rg_config)
         r1 = reader_group.create_reader("reader-1")
         segment_slice = await r1.get_segment_slice_async()
