@@ -190,9 +190,6 @@ class PravegaTest(unittest.TestCase):
         except Exception as e:
             print("Exception ", e)
 
-
-
-
     def test_writeTxn(self):
         scope = ''.join(secrets.choice(string.ascii_lowercase + string.digits)
                         for i in range(10))
