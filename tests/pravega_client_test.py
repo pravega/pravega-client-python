@@ -92,6 +92,44 @@ class PravegaTest(unittest.TestCase):
         delete_scope_result=stream_manager.delete_scope(scope)
         self.assertEqual(True, delete_scope_result, "Scope deletion status")
 
+    def test_seal_deleteStream(self):
+        scope = ''.join(secrets.choice(string.ascii_lowercase + string.digits)
+                        for i in range(10))
+        print("Creating a Stream Manager, ensure Pravega is running")
+        stream_manager=pravega_client.StreamManager("tcp://127.0.0.1:9090", False, False)
+
+        print("Creating a scope")
+        scope_result=stream_manager.create_scope(scope)
+        self.assertEqual(True, scope_result, "Scope creation status")
+
+        print("Creating a stream")
+        stream_result=stream_manager.create_stream(scope, "testSealStream", 1)
+        self.assertEqual(True, stream_result, "Stream creation status")
+
+        policy = StreamScalingPolicy.auto_scaling_policy_by_event_rate(10, 2, 1)
+        retention = StreamRetentionPolicy.by_time(24*60*60*1000)
+        stream_update=stream_manager.update_stream_with_policy(scope, "testSealStream", policy, retention)
+        self.assertTrue(stream_update, "Stream update status")
+
+        print("Creating a writer for Stream")
+        w1=stream_manager.create_writer(scope,"testSealStream")
+
+        print("Write events")
+        w1.write_event("test event1", "key")
+        w1.write_event("test event2", "key")
+
+        seal_stream_status = stream_manager.seal_stream(scope, "testSealStream")
+        self.assertTrue(seal_stream_status, "Stream seal status")
+
+        try:
+            w1.write_event("test event3", "key")
+            self.fail("Writing to an already sealed stream should throw exception")
+        except Exception as e:
+            print("Exception ", e)
+
+        delete_stream_status = stream_manager.delete_stream(scope, "testSealStream")
+        self.assertTrue(delete_stream_status, "Stream deletion status")
+
     def test_byteStream(self):
         scope = ''.join(secrets.choice(string.ascii_lowercase + string.digits)
                         for i in range(10))
