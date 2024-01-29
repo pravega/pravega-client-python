@@ -15,7 +15,7 @@ cfg_if! {
         use pyo3::prelude::*;
         use pyo3::PyResult;
         use pyo3::PyObjectProtocol;
-        use tracing::{info, error};
+        use log::{info, error};
         use std::sync::Arc;
         use tokio::sync::Mutex;
         use tokio::runtime::Handle;

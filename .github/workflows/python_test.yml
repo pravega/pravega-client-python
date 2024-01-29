@@ -66,7 +66,7 @@ jobs:
           cargo test
           maturin develop
           pip install -r requirements.txt
-          pytest tests --cov=pravega_client --cov-report xml
+          pytest tests --cov=pravega_client --cov-report xml --timeout=300 -vvvvv
           cargo llvm-cov --no-run --lcov --output-path coverage.lcov
       - uses: codecov/codecov-action@v3
         with:
