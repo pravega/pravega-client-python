@@ -49,6 +49,7 @@ cfg_if! {
 /// A Python module for Pravega implemented in Rust.
 fn pravega_client(py: Python, m: &PyModule) -> PyResult<()> {
     let _ = tracing_subscriber::fmt::try_init();
+    let _log = pyo3_log::init();
     m.add_class::<StreamManager>()?;
     m.add_class::<StreamWriter>()?;
     m.add_class::<StreamTxnWriter>()?;
