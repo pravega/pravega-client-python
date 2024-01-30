@@ -49,6 +49,7 @@ class PravegaReaderTest(aiounittest.AsyncTestCase):
         rg_config = pravega_client.StreamReaderGroupConfig(False, scope, stream)
         reader_group=stream_manager.create_reader_group_with_config("rg" + suffix, scope, rg_config)
         r1 = reader_group.create_reader("reader-1")
+        print(repr(r1))
         segment_slice = await r1.get_segment_slice_async()
         print(segment_slice)
         # consume the segment slice for events.
@@ -56,6 +57,7 @@ class PravegaReaderTest(aiounittest.AsyncTestCase):
         for event in segment_slice:
             count+=1
             print(event.data())
+            print(repr(event))
             self.assertEqual(b'test event', event.data(), "Invalid event data")
         self.assertEqual(count, 2, "Two events are expected")
         reader_group.reader_offline("reader-1")
@@ -77,7 +79,7 @@ class PravegaReaderTest(aiounittest.AsyncTestCase):
 
         print("Creating a writer for Stream")
         w1 = stream_manager.create_writer(scope, stream)
-
+        print(repr(w1))
         print("Write events")
         await w1.write_event_async("test async write event")
         await w1.write_event_async("test async write event")
@@ -86,7 +88,9 @@ class PravegaReaderTest(aiounittest.AsyncTestCase):
         w1.flush()
         # Create a reader Group Configuration to read from HEAD of stream.
         rg_config = pravega_client.StreamReaderGroupConfig(False, scope, stream)
+        print(repr(rg_config))
         reader_group=stream_manager.create_reader_group_with_config("rg" + suffix, scope, rg_config)
+        print(repr(reader_group))
         r1 = reader_group.create_reader("reader-1")
         segment_slice = await r1.get_segment_slice_async()
         print(segment_slice)
