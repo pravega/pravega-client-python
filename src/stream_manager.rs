@@ -17,6 +17,7 @@ cfg_if! {
         use pravega_client::client_factory::ClientFactory;
         use pravega_client_shared::*;
         use pravega_client_config::{ClientConfig, ClientConfigBuilder};
+        use pravega_controller_client::paginator::*;
         use pyo3::prelude::*;
         use pyo3::PyResult;
         use pyo3::{exceptions, PyObjectProtocol};
@@ -25,6 +26,7 @@ cfg_if! {
         use tracing::info;
         use pravega_client::event::reader_group::ReaderGroupConfigBuilder;
         use crate::stream_reader_group::StreamReaderGroupConfig;
+        use futures::StreamExt;
     }
 }
 
@@ -227,6 +229,42 @@ impl StreamManager {
             Ok(t) => Ok(t),
             Err(e) => Err(exceptions::PyValueError::new_err(format!("{:?}", e))),
         }
+    }
+
+    ///
+    /// list scope
+    ///
+    #[pyo3(text_signature = "($self, token)")]
+    pub fn list_scope<'p>(&self, _py: Python<'p>) -> PyResult<Vec<String>> {
+        let controller = self.cf.controller_client();
+        let scope_result = list_scopes(controller);
+        futures::pin_mut!(scope_result);
+        let mut scope_vector = Vec::new();
+
+        // Use tokio::runtime::Runtime to block on the async code
+        let _result = tokio::runtime::Runtime::new().unwrap().block_on(async {
+            while let Some(sc) = scope_result.next().await {
+                scope_vector.push(sc);
+            }
+            Ok::<_, PyErr>(())
+        });
+        // Checks for errors in the async block
+        // _result.map_err(|e| PyErr::new::<pyo3::exceptions::PyException, _>(_py))?;
+        _result.map_err(|e| PyErr::new::<pyo3::exceptions::PyException, _>(IntoPy::<Py<pyo3::PyAny>>::into_py(e, _py)))?;
+
+        let mut scope_vector_act: Vec<String> = Vec::new();
+        for scope_val in scope_vector {
+            match scope_val {
+                Ok(scope) => {
+                    scope_vector_act.push(scope.name)
+                },
+                Err(e) => {
+                    println!("Exception enciuntered : {}", e);
+                    // Err(exceptions::PyValueError::new_err(format!("{:?}", e)))               //TODO:check on what to do in case of exception
+                },
+            }
+        }
+        Ok(scope_vector_act)
     }
 
     ///
