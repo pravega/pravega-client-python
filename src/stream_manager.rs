@@ -234,14 +234,14 @@ impl StreamManager {
     ///
     /// list scope
     ///
-    #[pyo3(text_signature = "($self, token)")]
+    #[pyo3(text_signature = "($self)")]
     pub fn list_scope<'p>(&self, _py: Python<'p>) -> PyResult<Vec<String>> {
         let controller = self.cf.controller_client();
         let scope_result = list_scopes(controller);
         futures::pin_mut!(scope_result);
-        let mut scope_vector = Vec::new();
 
-        // Use tokio::runtime::Runtime to block on the async code
+        let mut scope_vector = Vec::new();
+        // Used tokio::runtime::Runtime to block on the async code
         let _result = tokio::runtime::Runtime::new().unwrap().block_on(async {
             while let Some(sc) = scope_result.next().await {
                 scope_vector.push(sc);
@@ -249,9 +249,7 @@ impl StreamManager {
             Ok::<_, PyErr>(())
         });
         // Checks for errors in the async block
-        // _result.map_err(|e| PyErr::new::<pyo3::exceptions::PyException, _>(_py))?;
         _result.map_err(|e| PyErr::new::<pyo3::exceptions::PyException, _>(IntoPy::<Py<pyo3::PyAny>>::into_py(e, _py)))?;
-
         let mut scope_vector_act: Vec<String> = Vec::new();
         for scope_val in scope_vector {
             match scope_val {
@@ -259,12 +257,49 @@ impl StreamManager {
                     scope_vector_act.push(scope.name)
                 },
                 Err(e) => {
-                    println!("Exception enciuntered : {}", e);
-                    // Err(exceptions::PyValueError::new_err(format!("{:?}", e)))               //TODO:check on what to do in case of exception
+                    println!("Exception encountered while fetching scope list : {}", e);
                 },
             }
         }
         Ok(scope_vector_act)
+    }
+
+
+    ///
+    /// list streams
+    ///
+    #[pyo3(text_signature = "($self, scope_name)")]
+    pub fn list_stream<'p>(&self, scope_name: &str, _py: Python<'p>) -> PyResult<Vec<String>> {
+        let controller = self.cf.controller_client();
+        let stream_result = list_streams(
+            Scope {
+                name: scope_name.to_string(),
+            },
+            controller,
+        );
+
+        futures::pin_mut!(stream_result);
+        let mut stream_vector = Vec::new();
+        let _result = tokio::runtime::Runtime::new().unwrap().block_on(async {
+            while let Some(sc) = stream_result.next().await {
+                stream_vector.push(sc);
+            }
+            Ok::<_, PyErr>(())
+        });
+        // Checks for errors in the async block
+        _result.map_err(|e| PyErr::new::<pyo3::exceptions::PyException, _>(IntoPy::<Py<pyo3::PyAny>>::into_py(e, _py)))?;
+        let mut stream_vector_act: Vec<String> = Vec::new();
+        for stream_val in stream_vector {
+            match stream_val {
+                Ok(scoped_stream) => {
+                    stream_vector_act.push(scoped_stream.stream.name)
+                },
+                Err(e) => {
+                    println!("Exception encountered while fetching stream list : {}", e);
+                },
+            }
+        }
+        Ok(stream_vector_act)
     }
 
     ///
@@ -278,7 +313,7 @@ impl StreamManager {
         retention_policy = "Default::default()",
         tags = "None"
     )]
-    pub fn create_stream_with_policy(
+    pub fn create_stream_with_policy (
         &self,
         scope_name: &str,
         stream_name: &str,

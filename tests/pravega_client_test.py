@@ -32,6 +32,7 @@ class PravegaTest(unittest.TestCase):
         stream_result=stream_manager.create_stream(scope, "testStream", 1)
         self.assertTrue(stream_result, "Stream creation status")
         tags = stream_manager.get_stream_tags(scope, "testStream")
+
         # verify empty tags.
         self.assertTrue(len(tags)==0)
         stream_update=stream_manager.update_stream_with_policy(scope_name=scope, stream_name="testStream", tags=["t1"])
@@ -56,6 +57,23 @@ class PravegaTest(unittest.TestCase):
         self.assertTrue(stream_update, "Stream update status")
         tags = stream_manager.get_stream_tags(scope, "testStream1")
         self.assertEqual(["t4", "t5"], tags)
+
+        # test for list_scope api
+        scope_list = stream_manager.list_scope()
+        self.assertTrue(len(scope_list) > 0, "The list is empty")
+        # test for list_stream API ['_MARKtestStream', 'testStream', 'testStream1', '_MARKtestStream1']
+        scope_name = str(scope_list[0])
+        stream_list = stream_manager.list_stream(scope_name)
+        self.assertEqual(stream_list, ['_MARKtestStream', 'testStream', 'testStream1', '_MARKtestStream1'])
+        # test with false scope name for list_stream API
+        false_scope = "falsescope"
+        stream_list1 = stream_manager.list_stream(false_scope)
+        self.assertEqual(stream_list1, [])
+        # test with empty scope name for list_stream API
+        empty_string = ""
+        stream_list2 = stream_manager.list_stream(empty_string)
+        self.assertEqual(stream_list2, [])
+
 
     def test_writeEvent(self):
         scope = ''.join(secrets.choice(string.ascii_lowercase + string.digits)
