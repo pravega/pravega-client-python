@@ -313,7 +313,7 @@ impl StreamManager {
         retention_policy = "Default::default()",
         tags = "None"
     )]
-    pub fn create_stream_with_policy (
+    pub fn create_stream_with_policy(
         &self,
         scope_name: &str,
         stream_name: &str,
