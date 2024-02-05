@@ -239,17 +239,19 @@ impl StreamManager {
         let controller = self.cf.controller_client();
         let scope_result = list_scopes(controller);
         futures::pin_mut!(scope_result);
-
         let mut scope_vector = Vec::new();
         // Used tokio::runtime::Runtime to block on the async code
-        let _result = tokio::runtime::Runtime::new().unwrap().block_on(async {
+        let result = tokio::runtime::Runtime::new().unwrap().block_on(async {
             while let Some(sc) = scope_result.next().await {
                 scope_vector.push(sc);
             }
             Ok::<_, PyErr>(())
         });
-        // Checks for errors in the async block
-        _result.map_err(|e| PyErr::new::<pyo3::exceptions::PyException, _>(IntoPy::<Py<pyo3::PyAny>>::into_py(e, _py)))?;
+
+        // to check for errors in the async block
+        if let Err(e) = result {
+            return Err(e);
+        }
         let mut scope_vector_act: Vec<String> = Vec::new();
         for scope_val in scope_vector {
             match scope_val {
@@ -257,13 +259,12 @@ impl StreamManager {
                     scope_vector_act.push(scope.name)
                 },
                 Err(e) => {
-                    println!("Exception encountered while fetching scope list : {}", e);
+                    return Err(exceptions::PyValueError::new_err(format!("{:?}", e)));
                 },
             }
         }
         Ok(scope_vector_act)
     }
-
 
     ///
     /// list streams
@@ -277,17 +278,19 @@ impl StreamManager {
             },
             controller,
         );
-
         futures::pin_mut!(stream_result);
         let mut stream_vector = Vec::new();
-        let _result = tokio::runtime::Runtime::new().unwrap().block_on(async {
+        let result = tokio::runtime::Runtime::new().unwrap().block_on(async {
             while let Some(sc) = stream_result.next().await {
                 stream_vector.push(sc);
             }
             Ok::<_, PyErr>(())
         });
-        // Checks for errors in the async block
-        _result.map_err(|e| PyErr::new::<pyo3::exceptions::PyException, _>(IntoPy::<Py<pyo3::PyAny>>::into_py(e, _py)))?;
+
+        // to check for errors in the async block
+        if let Err(e) = result {
+            return Err(e);
+        }
         let mut stream_vector_act: Vec<String> = Vec::new();
         for stream_val in stream_vector {
             match stream_val {
@@ -295,7 +298,7 @@ impl StreamManager {
                     stream_vector_act.push(scoped_stream.stream.name)
                 },
                 Err(e) => {
-                    println!("Exception encountered while fetching stream list : {}", e);
+                    return Err(exceptions::PyValueError::new_err(format!("{:?}", e)));
                 },
             }
         }
