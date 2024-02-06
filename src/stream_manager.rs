@@ -17,6 +17,7 @@ cfg_if! {
         use pravega_client::client_factory::ClientFactory;
         use pravega_client_shared::*;
         use pravega_client_config::{ClientConfig, ClientConfigBuilder};
+        use pravega_controller_client::paginator::*;
         use pyo3::prelude::*;
         use pyo3::PyResult;
         use pyo3::{exceptions, PyObjectProtocol};
@@ -25,6 +26,7 @@ cfg_if! {
         use tracing::info;
         use pravega_client::event::reader_group::ReaderGroupConfigBuilder;
         use crate::stream_reader_group::StreamReaderGroupConfig;
+        use futures::StreamExt;
     }
 }
 
@@ -159,9 +161,9 @@ impl StreamScalingPolicy {
 impl StreamManager {
     #[new]
     #[args(
-        auth_enabled = "false",
-        tls_enabled = "false",
-        disable_cert_verification = "false"
+    auth_enabled = "false",
+    tls_enabled = "false",
+    disable_cert_verification = "false"
     )]
     fn new(
         controller_uri: &str,
@@ -230,15 +232,89 @@ impl StreamManager {
     }
 
     ///
+    /// list scope
+    ///
+    #[pyo3(text_signature = "($self)")]
+    pub fn list_scope<'p>(&self, _py: Python<'p>) -> PyResult<Vec<String>> {
+        let controller = self.cf.controller_client();
+        let scope_result = list_scopes(controller);
+        futures::pin_mut!(scope_result);
+        let mut scope_vector = Vec::new();
+        // Used tokio::runtime::Runtime to block on the async code
+        let result = tokio::runtime::Runtime::new().unwrap().block_on(async {
+            while let Some(sc) = scope_result.next().await {
+                scope_vector.push(sc);
+            }
+            Ok::<_, PyErr>(())
+        });
+
+        // to check for errors in the async block
+        if let Err(e) = result {
+            return Err(e);
+        }
+        let mut scope_vector_act: Vec<String> = Vec::new();
+        for scope_val in scope_vector {
+            match scope_val {
+                Ok(scope) => {
+                    scope_vector_act.push(scope.name)
+                },
+                Err(e) => {
+                    return Err(exceptions::PyValueError::new_err(format!("{:?}", e)));
+                },
+            }
+        }
+        Ok(scope_vector_act)
+    }
+
+    ///
+    /// list streams
+    ///
+    #[pyo3(text_signature = "($self, scope_name)")]
+    pub fn list_stream<'p>(&self, scope_name: &str, _py: Python<'p>) -> PyResult<Vec<String>> {
+        let controller = self.cf.controller_client();
+        let stream_result = list_streams(
+            Scope {
+                name: scope_name.to_string(),
+            },
+            controller,
+        );
+        futures::pin_mut!(stream_result);
+        let mut stream_vector = Vec::new();
+        let result = tokio::runtime::Runtime::new().unwrap().block_on(async {
+            while let Some(sc) = stream_result.next().await {
+                stream_vector.push(sc);
+            }
+            Ok::<_, PyErr>(())
+        });
+
+        // to check for errors in the async block
+        if let Err(e) = result {
+            return Err(e);
+        }
+        let mut stream_vector_act: Vec<String> = Vec::new();
+        for stream_val in stream_vector {
+            match stream_val {
+                Ok(scoped_stream) => {
+                    stream_vector_act.push(scoped_stream.stream.name)
+                },
+                Err(e) => {
+                    return Err(exceptions::PyValueError::new_err(format!("{:?}", e)));
+                },
+            }
+        }
+        Ok(stream_vector_act)
+    }
+
+    ///
     /// Create a Stream in Pravega.
     ///
     #[pyo3(
-        text_signature = "($self, scope_name, stream_name, scaling_policy, retention_policy, tags)"
+    text_signature = "($self, scope_name, stream_name, scaling_policy, retention_policy, tags)"
     )]
     #[args(
-        scaling_policy = "Default::default()",
-        retention_policy = "Default::default()",
-        tags = "None"
+    scaling_policy = "Default::default()",
+    retention_policy = "Default::default()",
+    tags = "None"
     )]
     pub fn create_stream_with_policy(
         &self,
@@ -292,12 +368,12 @@ impl StreamManager {
     /// Update Stream Configuration in Pravega.
     ///
     #[pyo3(
-        text_signature = "($self, scope_name, stream_name, scaling_policy, retention_policy, tags)"
+    text_signature = "($self, scope_name, stream_name, scaling_policy, retention_policy, tags)"
     )]
     #[args(
-        scaling_policy = "Default::default()",
-        retention_policy = "Default::default()",
-        tags = "None"
+    scaling_policy = "Default::default()",
+    retention_policy = "Default::default()",
+    tags = "None"
     )]
     pub fn update_stream_with_policy(
         &self,
@@ -332,7 +408,7 @@ impl StreamManager {
     /// Get Stream tags from Pravega.
     ///
     #[pyo3(
-        text_signature = "($self, scope_name, stream_name, scaling_policy, retention_policy, tags)"
+    text_signature = "($self, scope_name, stream_name, scaling_policy, retention_policy, tags)"
     )]
     pub fn get_stream_tags(
         &self,
