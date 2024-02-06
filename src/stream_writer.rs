@@ -223,10 +223,7 @@ impl StreamWriter {
             let res = self.runtime_handle.block_on(x);
             // fail fast on error.
             if let Err(e) = res {
-                info!(
-                    "RecvError observed while flushing events on stream {:?}",
-                    self.stream
-                );
+                info!("RecvError observed while flushing events on stream {:?}", self.stream);
                 flush_result = Err(exceptions::PyValueError::new_err(format!(
                     "RecvError observed while writing an event {:?}",
                     e

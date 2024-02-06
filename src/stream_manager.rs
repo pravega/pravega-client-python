@@ -325,10 +325,7 @@ impl StreamManager {
         tags: Option<Vec<String>>,
     ) -> PyResult<bool> {
         let handle = self.cf.runtime_handle();
-        info!(
-            "creating stream {:?} under scope {:?} with scaling policy {:?}, retention policy {:?} and tags {:?}",
-            stream_name, scope_name, scaling_policy.scaling, retention_policy.retention, tags
-        );
+        info!("creating stream {:?} under scope {:?} with scaling policy {:?}, retention policy {:?} and tags {:?}", stream_name, scope_name, scaling_policy.scaling, retention_policy.retention, tags);
         let stream_cfg = StreamConfiguration {
             scoped_stream: ScopedStream {
                 scope: Scope::from(scope_name.to_string()),
@@ -387,10 +384,7 @@ impl StreamManager {
         tags: Option<Vec<String>>,
     ) -> PyResult<bool> {
         let handle = self.cf.runtime_handle();
-        info!(
-            "updating stream {:?} under scope {:?} with scaling policy {:?}, retention policy {:?} and tags {:?}",
-            stream_name, scope_name, scaling_policy.scaling, retention_policy.retention, tags
-        );
+        info!("updating stream {:?} under scope {:?} with scaling policy {:?}, retention policy {:?} and tags {:?}", stream_name, scope_name, scaling_policy.scaling, retention_policy.retention, tags);
         let stream_cfg = StreamConfiguration {
             scoped_stream: ScopedStream {
                 scope: Scope::from(scope_name.to_string()),
@@ -422,10 +416,7 @@ impl StreamManager {
         stream_name: &str,
     ) -> PyResult<Option<Vec<String>>> {
         let handle = self.cf.runtime_handle();
-        info!(
-            "fetch tags for stream {:?} under scope {:?}",
-            stream_name, scope_name,
-        );
+        info!("fetch tags for stream {:?} under scope {:?}", stream_name, scope_name);
         let stream = ScopedStream {
             scope: Scope::from(scope_name.to_string()),
             stream: Stream::from(stream_name.to_string()),
@@ -446,10 +437,7 @@ impl StreamManager {
     #[pyo3(text_signature = "($self, scope_name, stream_name)")]
     pub fn seal_stream(&self, scope_name: &str, stream_name: &str) -> PyResult<bool> {
         let handle = self.cf.runtime_handle();
-        info!(
-            "Sealing stream {:?} under scope {:?} ",
-            stream_name, scope_name
-        );
+        info!("Sealing stream {:?} under scope {:?} ", stream_name, scope_name);
         let scoped_stream = ScopedStream {
             scope: Scope::from(scope_name.to_string()),
             stream: Stream::from(stream_name.to_string()),
@@ -471,10 +459,7 @@ impl StreamManager {
     #[pyo3(text_signature = "($self, scope_name, stream_name)")]
     pub fn delete_stream(&self, scope_name: &str, stream_name: &str) -> PyResult<bool> {
         let handle = self.cf.runtime_handle();
-        info!(
-            "Deleting stream {:?} under scope {:?} ",
-            stream_name, scope_name
-        );
+        info!("Deleting stream {:?} under scope {:?} ", stream_name, scope_name);
         let scoped_stream = ScopedStream {
             scope: Scope::from(scope_name.to_string()),
             stream: Stream::from(stream_name.to_string()),
@@ -651,7 +636,7 @@ impl StreamManager {
     /// import pravega_client;
     /// manager=pravega_client.StreamManager("tcp://127.0.0.1:9090")
     /// // Delete a ReaderGroup against an already created Pravega scope..
-    /// manager.delete_reader_group_with_config("rg1", "scope", rg_config)
+    /// manager.delete_reader_group("rg1", "scope", rg_config)
     ///
     /// ```
     ///
@@ -737,4 +722,4 @@ impl PyObjectProtocol for StreamManager {
     fn __repr__(&self) -> PyResult<String> {
         Ok(format!("StreamManager({})", self.to_str()))
     }
-}
+ }

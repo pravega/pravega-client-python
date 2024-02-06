@@ -41,7 +41,8 @@ class PravegaTest(unittest.TestCase):
 
         # create a stream with stream scaling is enabled with data rate as 10kbps, scaling factor as 2 and initial segments as 1
         policy = StreamScalingPolicy.auto_scaling_policy_by_data_rate(10, 2, 1)
-        stream_result=stream_manager.create_stream_with_policy(scope_name=scope, stream_name="testStream1", scaling_policy=policy)
+        retention = StreamRetentionPolicy.none()
+        stream_result=stream_manager.create_stream_with_policy(scope_name=scope, stream_name="testStream1", scaling_policy=policy, retention_policy=retention)
         self.assertTrue(stream_result, "Stream creation status")
         # add tags
         stream_update=stream_manager.update_stream_with_policy(scope_name=scope, stream_name="testStream1", scaling_policy=policy, tags=['t1', 't2'])
@@ -95,6 +96,58 @@ class PravegaTest(unittest.TestCase):
         w1.write_event("test event1")
         w1.write_event("test event2")
 
+    def test_deleteScope(self):
+        scope = ''.join(secrets.choice(string.ascii_lowercase + string.digits)
+                        for i in range(10))
+        print("Creating a Stream Manager, ensure Pravega is running")
+        stream_manager=pravega_client.StreamManager("tcp://127.0.0.1:9090", False, False)
+
+        print("Creating a scope")
+        scope_result=stream_manager.create_scope(scope)
+        self.assertEqual(True, scope_result, "Scope creation status")
+
+        print("Deleting the scope")
+        delete_scope_result=stream_manager.delete_scope(scope)
+        self.assertEqual(True, delete_scope_result, "Scope deletion status")
+
+    def test_seal_deleteStream(self):
+        scope = ''.join(secrets.choice(string.ascii_lowercase + string.digits)
+                        for i in range(10))
+        print("Creating a Stream Manager, ensure Pravega is running")
+        stream_manager=pravega_client.StreamManager("tcp://127.0.0.1:9090", False, False)
+        print(repr(stream_manager))
+        print("Creating a scope")
+        scope_result=stream_manager.create_scope(scope)
+        self.assertEqual(True, scope_result, "Scope creation status")
+
+        print("Creating a stream")
+        stream_result=stream_manager.create_stream(scope, "testSealStream", 1)
+        self.assertEqual(True, stream_result, "Stream creation status")
+
+        policy = StreamScalingPolicy.auto_scaling_policy_by_event_rate(10, 2, 1)
+        retention = StreamRetentionPolicy.by_time(24*60*60*1000)
+        stream_update=stream_manager.update_stream_with_policy(scope, "testSealStream", policy, retention)
+        self.assertTrue(stream_update, "Stream update status")
+
+        print("Creating a writer for Stream")
+        w1=stream_manager.create_writer(scope,"testSealStream")
+
+        print("Write events")
+        w1.write_event("test event1", "key")
+        w1.write_event("test event2", "key")
+
+        seal_stream_status = stream_manager.seal_stream(scope, "testSealStream")
+        self.assertTrue(seal_stream_status, "Stream seal status")
+
+        try:
+            w1.write_event("test event3", "key")
+            self.fail("Writing to an already sealed stream should throw exception")
+        except Exception as e:
+            print("Exception ", e)
+
+        delete_stream_status = stream_manager.delete_stream(scope, "testSealStream")
+        self.assertTrue(delete_stream_status, "Stream deletion status")
+
     def test_byteStream(self):
         scope = ''.join(secrets.choice(string.ascii_lowercase + string.digits)
                         for i in range(10))
@@ -112,23 +165,48 @@ class PravegaTest(unittest.TestCase):
         # write and read data.
         print("Creating a writer for Stream")
         bs=stream_manager.create_byte_stream(scope,"testStream")
-        self.assertEqual(5, bs.write(b"bytes"))
+        print(repr(bs))
+        self.assertEqual(15, bs.write(b"bytesfortesting"))
+        self.assertEqual(15, bs.write(b"bytesfortesting"))
+        self.assertEqual(15, bs.write(b"bytesfortesting"))
         bs.flush()
-        self.assertEqual(5, bs.current_tail_offset())
-        buf=bytearray(5)
-        self.assertEqual(5, bs.readinto(buf))
+        self.assertEqual(45, bs.current_tail_offset())
+        buf=bytearray(10)
+        self.assertEqual(10, bs.readinto(buf))
 
         # fetch the current read offset.
         current_offset=bs.tell()
-        self.assertEqual(5, current_offset)
+        self.assertEqual(10, current_offset)
+        self.assertTrue(bs.seekable())
 
         # seek to a given offset and read
-        bs.seek(3, 0)
+        bs.seek(10, 0)
         buf=bytearray(2)
         self.assertEqual(2, bs.readinto(buf))
+        current_offset=bs.tell()
+        self.assertEqual(12, current_offset)
+
+        # seek from {current position (i.e. 12 here) + 5 } which is 17 and read
+        bs.seek(5, 1)
+        buf=bytearray(8)
+        # reading 8 bytes here
+        self.assertEqual(8, bs.readinto(buf))
+        self.assertEqual(25, bs.tell())
+
+        # seek from {size of this object (i.e. 45 here) - 10 } which is 35 and read
+        bs.seek(-10, 2)
+        buf=bytearray(8)
+        # reading 8 bytes here
+        self.assertEqual(8, bs.readinto(buf))
+        self.assertEqual(43, bs.tell())
 
         bs.truncate(2)
         self.assertEqual(2, bs.current_head_offset())
+        try:
+            bs.seek(3, 6)
+            self.fail("whence should be one of 0: seek from start, 1: seek from current, or 2: seek from end")
+        except Exception as e:
+            print("Exception ", e)
 
     def test_writeTxn(self):
         scope = ''.join(secrets.choice(string.ascii_lowercase + string.digits)
@@ -146,14 +224,18 @@ class PravegaTest(unittest.TestCase):
 
         print("Creating a txn writer for Stream")
         w1=stream_manager.create_transaction_writer(scope,"testTxn", 1)
+        print(repr(w1))
         txn1 = w1.begin_txn()
+        print(repr(txn1))
+        txn1_id = txn1.get_txn_id()
         print("Write events")
         txn1.write_event("test event1")
         txn1.write_event("test event2")
         self.assertTrue(txn1.is_open(), "Transaction is open")
         print("commit transaction")
         txn1.commit()
-        self.assertEqual(False, txn1.is_open(), "Transaction is closed")
+        get_txn = w1.get_txn(txn1_id)
+        self.assertEqual(False, get_txn.is_open(), "Transaction is closed")
 
         txn2 = w1.begin_txn()
         print("Write events")
