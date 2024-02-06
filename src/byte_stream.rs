@@ -245,10 +245,7 @@ impl ByteStream {
 
 impl Drop for ByteStream {
     fn drop(&mut self) {
-        info!(
-            "Drop invoked on ByteStream {:?}, invoking flush",
-            self.stream
-        );
+        info!("Drop invoked on ByteStream {:?}, invoking flush", self.stream);
         if let Err(e) = self.runtime_handle.block_on(self.writer.flush()) {
             error!("Error while flushing byteStream {:?}", e);
         }

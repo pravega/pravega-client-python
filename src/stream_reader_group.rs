@@ -129,10 +129,7 @@ impl StreamReaderGroup {
     ///```
     ///
     pub fn create_reader(&self, reader_name: &str) -> PyResult<StreamReader> {
-        info!(
-            "Creating reader {:?} under reader group {:?}",
-            reader_name, self.reader_group.name
-        );
+        info!("Creating reader {:?} under reader group {:?}", reader_name, self.reader_group.name);
         let reader = self
             .runtime_handle
             .block_on(self.reader_group.create_reader(reader_name.to_string()));
@@ -156,10 +153,7 @@ impl StreamReaderGroup {
     ///```
     ///
     pub fn reader_offline(&self, reader_name: &str) -> PyResult<()> {
-        info!(
-            "Marking reader {:?} under reader group {:?} as offline",
-            reader_name, self.reader_group.name
-        );
+        info!("Marking reader {:?} under reader group {:?} as offline", reader_name, self.reader_group.name);
         let res = self.runtime_handle.block_on(
             self.reader_group
                 .reader_offline(reader_name.to_string(), None),
