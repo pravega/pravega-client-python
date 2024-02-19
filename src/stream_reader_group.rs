@@ -12,6 +12,9 @@ cfg_if! {
     if #[cfg(feature = "python_binding")] {
         use pravega_client_shared::ScopedStream;
         use pravega_client::event::reader_group::ReaderGroup;
+        use pravega_client::event::reader_group::StreamCutVersioned;
+        use pravega_client::event::reader_group::StreamCutV1;
+        use std::collections::HashMap;
         use pyo3::prelude::*;
         use pyo3::PyResult;
         use pyo3::PyObjectProtocol;
@@ -22,9 +25,13 @@ cfg_if! {
         use crate::stream_reader::StreamReader;
         use pravega_client::event::reader_group::{ReaderGroupConfig, ReaderGroupConfigBuilder};
         use pravega_client::event::reader_group_state::ReaderGroupStateError;
-        use pravega_client_shared::{Scope, Stream};
+        use pravega_client::event::reader_group_state::Offset;
+        use pravega_client_shared::{Scope, Stream, StreamCut};
+        use pravega_client_shared::{ScopedSegment, ScopedStream};
         use pyo3::types::PyTuple;
         use pyo3::exceptions;
+        use pyo3::prelude::*;
+        use pyo3::types::PyDict;
     }
 }
 
@@ -96,6 +103,36 @@ impl StreamReaderGroupConfig {
 impl PyObjectProtocol for StreamReaderGroupConfig {
     fn __repr__(&self) -> PyResult<String> {
         Ok(format!("StreamReaderGroupConfig({:?})", self.to_str()))
+    }
+}
+
+#[cfg(feature = "python_binding")]
+#[pyclass]
+#[derive(Clone)]
+pub(crate) struct ReaderStreamCut {
+    pub(crate) reader_stream_cut: StreamCut,
+}
+#[cfg(feature = "python_binding")]
+#[pymethods]
+impl ReaderStreamCut {
+
+    /*fn get_scoped_stream(&self) -> ScopedStream {
+        self.reader_stream_cut.scoped_stream.clone()
+    }*/
+    fn get_segment_offset_map(&self) -> HashMap<i64, i64> {
+        self.reader_stream_cut.segment_offset_map.clone()
+    }
+
+    fn to_str(&self) -> String {
+        format!("ReaderStreamCut: {:?}", self.reader_stream_cut)
+    }
+}
+
+#[cfg(feature = "python_binding")]
+#[pyproto]
+impl PyObjectProtocol for ReaderStreamCut {
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("ReaderStreamCut({:?})", self.to_str()))
     }
 }
 
@@ -174,6 +211,46 @@ impl StreamReaderGroup {
                 ReaderGroupStateError::ReaderAlreadyOfflineError { .. } => {
                     info!("Reader {:?} is already offline", reader_name);
                     Ok(())
+                }
+            },
+        }
+    }
+
+    /// Return the latest StreamCut for the given reader.
+    /// Use this StreamCut in the ReaderGroupConfig to initiate reading from this streamcut.
+    pub fn get_reader_streamcut(&self, reader_name: &str) -> PyResult<ReaderStreamCut> {
+        info!(
+            "Get reader streamcut for reader {:?} ", reader_name
+        );
+
+        let streamcut = self
+            .runtime_handle
+            .block_on(self.reader_group.get_reader_streamcut(reader_name.to_string()));
+
+        match streamcut {
+            Ok(streamcut_value) => Ok(ReaderStreamCut{
+                reader_stream_cut: streamcut_value
+            }),
+            Err(e) => match e {
+                ReaderGroupStateError::SyncError { .. } => {
+                    error!(
+                        "Failed to get position for reader {:?} exception {:?} ",
+                        reader_name, e
+                    );
+                    Err(exceptions::PyValueError::new_err(format!(
+                        "Failed to get position for reader {:?} exception {:?} ",
+                        reader_name, e
+                    )))
+                }
+                ReaderGroupStateError::ReaderAlreadyOfflineError { .. } => {
+                    error!(
+                        "Reader already offline, failed to get position for reader {:?} exception {:?} ",
+                        reader_name, e
+                    );
+                    Err(exceptions::PyValueError::new_err(format!(
+                        "Reader already offline, failed to get position for reader {:?} exception {:?} ",
+                        reader_name, e
+                    )))
                 }
             },
         }
