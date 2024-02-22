@@ -322,8 +322,13 @@ class PravegaReaderTest(aiounittest.AsyncTestCase):
                 self.assertEqual(b'a'*100000, event.data(), "Invalid event data")
             r1.release_segment(segment_slice)
 
-    # This test is to verify get_streamcut API
-    async def test_getReaderStreamcut(self):
+    # This test is to verify get_streamcut API.
+    # It creates a Pravega stream and writes 4 events.
+    # Add reader to ReaderGroup which read only first 2 events and release segment slice.
+    # Reader positions are updated for every 3 secs on acquistion of segments or release segment call so pause for 3 sec before release segment call.
+    # Get streamcut which has start offset points to 3rd event. Use this streamcut to create new RG
+    # Now reader in this RG reads remaining to 2 events.
+    async def test_getStreamcut(self):
         suffix = str(random.randint(0, 100))
         scope = "testReaderSC"
         stream = "testStream" + suffix
@@ -336,8 +341,6 @@ class PravegaReaderTest(aiounittest.AsyncTestCase):
         print("Creating a stream ", stream)
         stream_result = stream_manager.create_stream(scope, stream, 1)
         print(stream_result)
-
-        print("Creating a writer for Stream")
         w1 = stream_manager.create_writer(scope, stream)
 
         print("Write 4 events")
@@ -377,7 +380,7 @@ class PravegaReaderTest(aiounittest.AsyncTestCase):
         r2 = reader_group2.create_reader("reader-2")
         segment_slice2 = await r2.get_segment_slice_async()
         print(segment_slice2)
-        countnew=1
+        countnew=0
         for event in segment_slice2:
             countnew+=1
             print(event.data())
