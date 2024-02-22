@@ -7,6 +7,7 @@
 #
 # http://www.apache.org/licenses/LICENSE-2.0
 #
+import time
 
 import pravega_client
 import random
@@ -320,3 +321,67 @@ class PravegaReaderTest(aiounittest.AsyncTestCase):
                 count+=1
                 self.assertEqual(b'a'*100000, event.data(), "Invalid event data")
             r1.release_segment(segment_slice)
+
+    # This test is to verify get_streamcut API
+    async def test_getReaderStreamcut(self):
+        suffix = str(random.randint(0, 100))
+        scope = "testReaderSC"
+        stream = "testStream" + suffix
+        print("Creating a Stream Manager, ensure Pravega is running")
+        stream_manager = pravega_client.StreamManager("tcp://127.0.0.1:9090")
+        pravega_client.StreamReaderGroupConfig(True, scope, stream)
+        print("Creating a scope")
+        scope_result = stream_manager.create_scope(scope)
+        print(scope_result)
+        print("Creating a stream ", stream)
+        stream_result = stream_manager.create_stream(scope, stream, 1)
+        print(stream_result)
+
+        print("Creating a writer for Stream")
+        w1 = stream_manager.create_writer(scope, stream)
+
+        print("Write 4 events")
+        w1.write_event("test event1")
+        w1.write_event("test event2")
+        w1.write_event("test event3")
+        w1.write_event("test event4")
+        w1.flush()
+
+        # Create a reader Group Configuration to read from HEAD of stream.
+        rg_config = pravega_client.StreamReaderGroupConfig(False, scope, stream)
+        reader_group=stream_manager.create_reader_group_with_config("rg" + suffix, scope, rg_config)
+
+        r1 = reader_group.create_reader("reader-1")
+        segment_slice = await r1.get_segment_slice_async()
+        print(segment_slice)
+
+        # consume the segment slice for events. Read single event ie event0 and get ReaderStreamcut.
+        # Same should be used to construct readerGroup2 and that should start reading from event 2 ie event1
+        count=0
+        for event in segment_slice:
+            count+=1
+            print(event.data())
+            print("event offset is ")
+            print(event.offset())
+            if count == 2 :
+                break
+        self.assertEqual(count, 2, "Two events are expected")
+        time.sleep(3)
+        r1.release_segment(segment_slice)
+        rsm = reader_group.get_streamcut()
+        print("StreamnCut after reading 2 events from first slice and release segment")
+        print(rsm)
+
+        # create RG with streamcut starts from 2nd event
+        reader_group2=stream_manager.create_reader_group("rgnew" + suffix, scope, stream, False, rsm)
+        r2 = reader_group2.create_reader("reader-2")
+        segment_slice2 = await r2.get_segment_slice_async()
+        print(segment_slice2)
+        countnew=1
+        for event in segment_slice2:
+            countnew+=1
+            print(event.data())
+            print("event offset is ")
+            print(event.offset())
+
+        self.assertEqual(countnew, 2, "Two events are expected")

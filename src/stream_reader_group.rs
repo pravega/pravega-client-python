@@ -10,7 +10,6 @@
 
 cfg_if! {
     if #[cfg(feature = "python_binding")] {
-        use pravega_client_shared::ScopedStream;
         use pravega_client::event::reader_group::ReaderGroup;
         use pravega_client::event::reader_group::StreamCutVersioned;
         use pravega_client::event::reader_group::StreamCutV1;
@@ -216,44 +215,19 @@ impl StreamReaderGroup {
         }
     }
 
-    /// Return the latest StreamCut for the given reader.
+    /// Return the latest StreamCut from ReaderGroup.
     /// Use this StreamCut in the ReaderGroupConfig to initiate reading from this streamcut.
-    pub fn get_reader_streamcut(&self, reader_name: &str) -> PyResult<ReaderStreamCut> {
-        info!(
-            "Get reader streamcut for reader {:?} ", reader_name
-        );
+    pub fn get_streamcut(&self) -> PyResult<ReaderStreamCut> {
 
         let streamcut = self
             .runtime_handle
-            .block_on(self.reader_group.get_reader_streamcut(reader_name.to_string()));
-
-        match streamcut {
-            Ok(streamcut_value) => Ok(ReaderStreamCut{
-                reader_stream_cut: streamcut_value
-            }),
-            Err(e) => match e {
-                ReaderGroupStateError::SyncError { .. } => {
-                    error!(
-                        "Failed to get position for reader {:?} exception {:?} ",
-                        reader_name, e
-                    );
-                    Err(exceptions::PyValueError::new_err(format!(
-                        "Failed to get position for reader {:?} exception {:?} ",
-                        reader_name, e
-                    )))
-                }
-                ReaderGroupStateError::ReaderAlreadyOfflineError { .. } => {
-                    error!(
-                        "Reader already offline, failed to get position for reader {:?} exception {:?} ",
-                        reader_name, e
-                    );
-                    Err(exceptions::PyValueError::new_err(format!(
-                        "Reader already offline, failed to get position for reader {:?} exception {:?} ",
-                        reader_name, e
-                    )))
-                }
-            },
-        }
+            .block_on(self.reader_group.get_streamcut());
+        info!(
+            "Got streamcut {:?} ",  streamcut
+        );
+        Ok(ReaderStreamCut {
+            reader_stream_cut: streamcut
+        })
     }
 
     /// Returns the string representation.
