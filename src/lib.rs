@@ -12,7 +12,7 @@
 #[macro_use]
 extern crate cfg_if;
 
-use crate::stream_reader_group::{ReaderStreamCut, StreamReaderGroupConfig};
+use crate::stream_reader_group::{StreamCuts, StreamReaderGroupConfig};
 
 mod byte_stream;
 mod stream_manager;
@@ -58,7 +58,7 @@ fn pravega_client(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<StreamReaderGroup>()?;
     m.add_class::<StreamScalingPolicy>()?;
     m.add_class::<StreamRetentionPolicy>()?;
-    m.add_class::<ReaderStreamCut>()?;
+    m.add_class::<StreamCuts>()?;
     m.add_class::<ByteStream>()?;
     let txn_exception = py.get_type::<TxnFailedException>();
     txn_exception.setattr("__doc__", TXNFAILED_EXCEPTION_DOCSTRING)?;

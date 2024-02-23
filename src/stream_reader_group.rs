@@ -11,8 +11,6 @@
 cfg_if! {
     if #[cfg(feature = "python_binding")] {
         use pravega_client::event::reader_group::ReaderGroup;
-        use pravega_client::event::reader_group::StreamCutVersioned;
-        use pravega_client::event::reader_group::StreamCutV1;
         use std::collections::HashMap;
         use pyo3::prelude::*;
         use pyo3::PyResult;
@@ -24,13 +22,10 @@ cfg_if! {
         use crate::stream_reader::StreamReader;
         use pravega_client::event::reader_group::{ReaderGroupConfig, ReaderGroupConfigBuilder};
         use pravega_client::event::reader_group_state::ReaderGroupStateError;
-        use pravega_client::event::reader_group_state::Offset;
         use pravega_client_shared::{Scope, Stream, StreamCut};
-        use pravega_client_shared::{ScopedSegment, ScopedStream};
+        use pravega_client_shared::ScopedStream;
         use pyo3::types::PyTuple;
         use pyo3::exceptions;
-        use pyo3::prelude::*;
-        use pyo3::types::PyDict;
     }
 }
 
@@ -108,30 +103,27 @@ impl PyObjectProtocol for StreamReaderGroupConfig {
 #[cfg(feature = "python_binding")]
 #[pyclass]
 #[derive(Clone)]
-pub(crate) struct ReaderStreamCut {
-    pub(crate) reader_stream_cut: StreamCut,
+pub(crate) struct StreamCuts {
+    pub(crate) stream_cuts: StreamCut,
 }
 #[cfg(feature = "python_binding")]
 #[pymethods]
-impl ReaderStreamCut {
+impl StreamCuts {
 
-    /*fn get_scoped_stream(&self) -> ScopedStream {
-        self.reader_stream_cut.scoped_stream.clone()
-    }*/
     fn get_segment_offset_map(&self) -> HashMap<i64, i64> {
-        self.reader_stream_cut.segment_offset_map.clone()
+        self.stream_cuts.segment_offset_map.clone()
     }
 
     fn to_str(&self) -> String {
-        format!("ReaderStreamCut: {:?}", self.reader_stream_cut)
+        format!("StreamCuts: {:?}", self.stream_cuts)
     }
 }
 
 #[cfg(feature = "python_binding")]
 #[pyproto]
-impl PyObjectProtocol for ReaderStreamCut {
+impl PyObjectProtocol for StreamCuts {
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("ReaderStreamCut({:?})", self.to_str()))
+        Ok(format!("StreamCuts({:?})", self.to_str()))
     }
 }
 
@@ -217,7 +209,7 @@ impl StreamReaderGroup {
 
     /// Return the latest StreamCut from ReaderGroup.
     /// Use this StreamCut in the ReaderGroupConfig to initiate reading from this streamcut.
-    pub fn get_streamcut(&self) -> PyResult<ReaderStreamCut> {
+    pub fn get_streamcut(&self) -> PyResult<StreamCuts> {
 
         let streamcut = self
             .runtime_handle
@@ -225,8 +217,8 @@ impl StreamReaderGroup {
         info!(
             "Got streamcut {:?} ",  streamcut
         );
-        Ok(ReaderStreamCut {
-            reader_stream_cut: streamcut
+        Ok(StreamCuts {
+            stream_cuts: streamcut
         })
     }
 

@@ -10,7 +10,7 @@
 
 use std::collections::HashMap;
 use pravega_client::event::reader_group::{StreamCutV1, StreamCutVersioned};
-use crate::stream_reader_group::ReaderStreamCut;
+use crate::stream_reader_group::StreamCuts;
 cfg_if! {
     if #[cfg(feature = "python_binding")] {
         use crate::stream_writer_transactional::StreamTxnWriter;
@@ -569,7 +569,7 @@ impl StreamManager {
         scope_name: &str,
         stream_name: &str,
         read_from_tail: bool,
-        stream_cut: Option<ReaderStreamCut>,
+        stream_cut: Option<StreamCuts>,
     ) -> PyResult<StreamReaderGroup> {
         let scope = Scope::from(scope_name.to_string());
         let stream = Stream::from(stream_name.to_string());
@@ -581,8 +581,8 @@ impl StreamManager {
         let rg_config = if let Some(ref stream_cut) = stream_cut {
             let mut positions = HashMap::new();
             // Iterate over the keys of the offset_map
-            for (segment_val, position) in stream_cut.reader_stream_cut.segment_offset_map.iter() {
-                let mut scoped_segment = ScopedSegment::new(scope.clone(), stream.clone(), Segment::from(*segment_val));
+            for (segment_val, position) in stream_cut.stream_cuts.segment_offset_map.iter() {
+                let scoped_segment = ScopedSegment::new(scope.clone(), stream.clone(), Segment::from(*segment_val));
                 positions.insert(scoped_segment, *position);
                 }
                 let stream_cut_v1 = StreamCutV1::new(scoped_stream.clone(), positions);
