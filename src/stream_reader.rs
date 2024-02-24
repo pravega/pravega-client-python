@@ -148,6 +148,9 @@ impl EventData {
     fn data(&self) -> &[u8] {
         self.value.as_slice()
     }
+
+    ///Return the offset
+    fn offset(&self) -> i64 { self.offset_in_segment }
     /// Returns the string representation.
     fn to_str(&self) -> String {
         format!("offset {:?} data :{:?}", self.offset_in_segment, self.value)

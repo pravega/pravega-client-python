@@ -8,6 +8,9 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 //
 
+use std::collections::HashMap;
+use pravega_client::event::reader_group::{StreamCutV1, StreamCutVersioned};
+use crate::stream_reader_group::StreamCuts;
 cfg_if! {
     if #[cfg(feature = "python_binding")] {
         use crate::stream_writer_transactional::StreamTxnWriter;
@@ -558,7 +561,7 @@ impl StreamManager {
     /// event.reader_group=manager.create_reader_group("rg1", "scope", "stream", true)
     /// ```
     ///
-    #[pyo3(text_signature = "($self, reader_group_name, scope_name, stream_name, read_from_tail)")]
+    #[pyo3(text_signature = "($self, reader_group_name, scope_name, stream_name, read_from_tail, stream_cut)")]
     #[args(read_from_tail = "false")]
     pub fn create_reader_group(
         &self,
@@ -566,24 +569,37 @@ impl StreamManager {
         scope_name: &str,
         stream_name: &str,
         read_from_tail: bool,
+        stream_cut: Option<StreamCuts>,
     ) -> PyResult<StreamReaderGroup> {
         let scope = Scope::from(scope_name.to_string());
+        let stream = Stream::from(stream_name.to_string());
         let scoped_stream = ScopedStream {
             scope: scope.clone(),
-            stream: Stream::from(stream_name.to_string()),
+            stream: stream.clone(),
         };
         let handle = self.cf.runtime_handle();
-        let rg_config = if read_from_tail {
-            // Create a reader group to read from the current TAIL/end of the Stream.
-            ReaderGroupConfigBuilder::default()
-                .read_from_tail_of_stream(scoped_stream)
-                .build()
-        } else {
-            // Create a reader group to read from current HEAD/start of the Stream.
-            ReaderGroupConfigBuilder::default()
-                .read_from_head_of_stream(scoped_stream)
-                .build()
-        };
+        let rg_config = if let Some(ref stream_cut) = stream_cut {
+            let mut positions = HashMap::new();
+            // Iterate over the keys of the offset_map
+            for (segment_val, position) in stream_cut.stream_cuts.segment_offset_map.iter() {
+                let scoped_segment = ScopedSegment::new(scope.clone(), stream.clone(), Segment::from(*segment_val));
+                positions.insert(scoped_segment, *position);
+                }
+                let stream_cut_v1 = StreamCutV1::new(scoped_stream.clone(), positions);
+                // Create a reader group to read from given StreamCut .
+                ReaderGroupConfigBuilder::default().read_from_stream(scoped_stream.clone(), StreamCutVersioned::V1(stream_cut_v1)).build()
+            }else if read_from_tail {
+                // Create a reader group to read from the current TAIL/end of the Stream.
+                ReaderGroupConfigBuilder::default()
+                    .read_from_tail_of_stream(scoped_stream)
+                    .build()
+            } else {
+                // Create a reader group to read from current HEAD/start of the Stream.
+                ReaderGroupConfigBuilder::default()
+                    .read_from_head_of_stream(scoped_stream)
+                    .build()
+            };
+
         let rg = handle.block_on(self.cf.create_reader_group_with_config(
             reader_group_name.to_string(),
             rg_config,

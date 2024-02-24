@@ -10,8 +10,8 @@
 
 cfg_if! {
     if #[cfg(feature = "python_binding")] {
-        use pravega_client_shared::ScopedStream;
         use pravega_client::event::reader_group::ReaderGroup;
+        use std::collections::HashMap;
         use pyo3::prelude::*;
         use pyo3::PyResult;
         use pyo3::PyObjectProtocol;
@@ -22,7 +22,8 @@ cfg_if! {
         use crate::stream_reader::StreamReader;
         use pravega_client::event::reader_group::{ReaderGroupConfig, ReaderGroupConfigBuilder};
         use pravega_client::event::reader_group_state::ReaderGroupStateError;
-        use pravega_client_shared::{Scope, Stream};
+        use pravega_client_shared::{Scope, Stream, StreamCut};
+        use pravega_client_shared::ScopedStream;
         use pyo3::types::PyTuple;
         use pyo3::exceptions;
     }
@@ -96,6 +97,33 @@ impl StreamReaderGroupConfig {
 impl PyObjectProtocol for StreamReaderGroupConfig {
     fn __repr__(&self) -> PyResult<String> {
         Ok(format!("StreamReaderGroupConfig({:?})", self.to_str()))
+    }
+}
+
+#[cfg(feature = "python_binding")]
+#[pyclass]
+#[derive(Clone)]
+pub(crate) struct StreamCuts {
+    pub(crate) stream_cuts: StreamCut,
+}
+#[cfg(feature = "python_binding")]
+#[pymethods]
+impl StreamCuts {
+
+    fn get_segment_offset_map(&self) -> HashMap<i64, i64> {
+        self.stream_cuts.segment_offset_map.clone()
+    }
+
+    fn to_str(&self) -> String {
+        format!("StreamCuts: {:?}", self.stream_cuts)
+    }
+}
+
+#[cfg(feature = "python_binding")]
+#[pyproto]
+impl PyObjectProtocol for StreamCuts {
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("StreamCuts({:?})", self.to_str()))
     }
 }
 
@@ -177,6 +205,21 @@ impl StreamReaderGroup {
                 }
             },
         }
+    }
+
+    /// Return the latest StreamCut from ReaderGroup.
+    /// Use this StreamCut in the ReaderGroupConfig to initiate reading from this streamcut.
+    pub fn get_streamcut(&self) -> PyResult<StreamCuts> {
+
+        let streamcut = self
+            .runtime_handle
+            .block_on(self.reader_group.get_streamcut());
+        info!(
+            "Got streamcut {:?} ",  streamcut
+        );
+        Ok(StreamCuts {
+            stream_cuts: streamcut
+        })
     }
 
     /// Returns the string representation.
