@@ -16,9 +16,10 @@ name = "pravega_client"
 crate-type = ["cdylib"]
 
 [features]
-default = ["python_binding"]
+default = ["python_binding", "extension-module"]
 javascript_binding = ["wasm-bindgen"]
 python_binding = ["pyo3", "pyo3-asyncio"]
+extension-module = ["pyo3/extension-module"]
 
 #Run tests for bindings using command cargo test --no-default-features
 
